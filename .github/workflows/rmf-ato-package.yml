@@ -20,10 +20,7 @@ jobs:
           python-version: '3.12'
       - run: pip install -e .
       - name: Validate sample configuration
-        run: python - <<'PY'
-          from rmfgen.core import load_config
-          print(load_config('sample_data/system.yaml')['system_name'])
-          PY
+        run: python -c "from rmfgen.core import load_config; print(load_config('sample_data/system.yaml')['system_name'])"
 
   generate-rmf-package:
     needs: validate-config
