@@ -1,0 +1,101 @@
+name: RMF ATO Package Generator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e .
+      - name: Validate sample configuration
+        run: python - <<'PY'
+          from rmfgen.core import load_config
+          print(load_config('sample_data/system.yaml')['system_name'])
+          PY
+
+  generate-rmf-package:
+    needs: validate-config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e .
+      - name: Generate versioned RMF authorization package
+        run: python -m rmfgen.cli build --config sample_data/system.yaml --output releases
+      - name: Validate stage artifacts
+        run: |
+          test -f releases/V1/02-categorize/security-categorization.md
+          test -f releases/V1/03-select-tailor/control-overlays-summary.md
+          test -f releases/V1/04-implement/evidence-requirements-overlay.md
+          test -f releases/V1/05-assess/security-assessment-plan.md
+          test -f releases/V1/06-authorize/poam.csv
+          test -f releases/V1/07-monitor/continuous-monitoring-strategy.md
+          test -f releases/V1/08-cross-framework/nist-800-171-readiness.md
+          test -f releases/V1/08-cross-framework/soc2-type2-readiness.md
+          test -f releases/V1/09-visuals/document-library-graph.png
+          test -f releases/V1/05-assess/scap/scap-integration-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmf-ato-package-V1
+          path: releases/V1/
+          retention-days: 30
+
+  openscap-toolchain:
+    needs: validate-config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OpenSCAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openscap-scanner
+          oscap --version
+      - name: Record SCAP toolchain evidence
+        run: |
+          mkdir -p scap-tool-evidence
+          oscap --version > scap-tool-evidence/openscap-version.txt 2>&1
+          printf '%s\n' 'SCAP target: NIST SCAP 1.4-aware evidence model' > scap-tool-evidence/scap-target.txt
+          printf '%s\n' 'Execution engine: OpenSCAP oscap for supported XCCDF/OVAL/data-stream workflows' >> scap-tool-evidence/scap-target.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openscap-toolchain-evidence
+          path: scap-tool-evidence/
+          retention-days: 30
+
+  authorization-readiness-gate:
+    needs: [generate-rmf-package, openscap-toolchain]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e .
+      - name: Rebuild package for readiness gate
+        run: python -m rmfgen.cli build --config sample_data/system.yaml --output releases
+      - name: Enforce package completeness
+        run: |
+          ROOT='releases/V1'
+          test -f "$ROOT/00-package-index/ato-ready-checklist.md"
+          test -f "$ROOT/00-package-index/release-manifest.json"
+          test -f "$ROOT/04-implement/control-implementation-matrix.csv"
+          test -f "$ROOT/05-assess/assessment-evidence-matrix.csv"
+          test -f "$ROOT/06-authorize/executive-risk-summary.md"
+          test -f "$ROOT/06-authorize/risk-acceptance-log.csv"
+          test -f "$ROOT/07-monitor/conmon-calendar.csv"
+          test -f "$ROOT/05-assess/scap/openscap-runbook.md"
+          echo 'RMF authorization package readiness gate passed.'
