@@ -1,0 +1,45 @@
+system_name: Sample Federal Case Management Platform
+system_id: SFCMP-001
+mission: Support controlled case management and records processing.
+authorization_boundary: AWS-hosted three-tier application, managed database, logging, CI/CD, identity integration, and supporting security services.
+hosting: AWS commercial cloud
+system_owner: Program Manager
+isso: Information System Security Officer
+authorizing_official: Authorizing Official
+data_types:
+  - PII
+  - internal business records
+impact:
+  confidentiality: Moderate
+  integrity: Moderate
+  availability: Moderate
+overlays:
+  - Cloud
+  - Zero Trust
+  - Privacy
+  - Continuous Monitoring
+controls:
+  - AC-2
+  - AC-3
+  - AC-6
+  - AU-2
+  - AU-6
+  - CA-2
+  - CA-5
+  - CA-7
+  - CM-2
+  - CM-6
+  - CP-9
+  - IA-2
+  - IR-4
+  - PL-2
+  - RA-3
+  - RA-5
+  - SA-11
+  - SC-7
+  - SC-13
+  - SI-2
+  - SI-4
+scap:
+  content_path: external/content-datastream.xml
+  profile: xccdf_org.example_profile_moderate
