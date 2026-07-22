@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nist-rmf-ato-package-generator"
+version = "0.1.0"
+description = "Versioned NIST RMF authorization package and SCAP evidence generator"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6.0.2",
+  "networkx>=3.3",
+  "matplotlib>=3.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["rmfgen*"]
